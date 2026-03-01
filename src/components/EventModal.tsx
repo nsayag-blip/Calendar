@@ -1,12 +1,12 @@
 import { useState } from "react";
-import type { EventInput } from "@fullcalendar/core";
+import type { Appointment } from "../types";
 import "./Scheduler.css";
 
 interface EventModalProps {
-  event: EventInput;
+  event: Appointment;
   onClose: () => void;
-  onSave: (updatedEvent: EventInput) => void;
-  onDelete: (id: string) => void;
+  onSave: (updated: Appointment) => void;
+  onDelete: () => void; // id comes from the event itself, caller handles it
 }
 
 export default function EventModal({
@@ -15,14 +15,12 @@ export default function EventModal({
   onSave,
   onDelete,
 }: EventModalProps) {
-  // Local state to edit the fields
-  const [title, setTitle] = useState(event.title || "");
-  const [patient, setPatient] = useState(event.extendedProps?.patient || "");
-  const [room, setRoom] = useState(event.extendedProps?.room || "");
-  const [type, setType] = useState(event.extendedProps?.type || "");
+  const [title, setTitle] = useState(event.title);
+  const [patient, setPatient] = useState(event.patient);
+  const [room, setRoom] = useState(event.room);
+  const [type, setType] = useState<Appointment["type"]>(event.type);
   const [errors, setErrors] = useState<{ title?: string; type?: string }>({});
 
-  // Called when the user clicks "Save"
   const handleSave = () => {
     const newErrors: typeof errors = {};
     if (!title.trim()) newErrors.title = "Title is required";
@@ -33,85 +31,71 @@ export default function EventModal({
       return;
     }
 
-    // Clear errors if everything is valid
     setErrors({});
-    onSave({
-      ...event,
-      title,
-      extendedProps: {
-        patient,
-        room,
-        type,
-      },
-    });
+    onSave({ ...event, title, patient, room, type });
   };
 
   return (
     <div className="modal-backdrop">
       <div className="modal">
-        <h3>Edit Event</h3>
+        <h3>{event.title ? "Edit Appointment" : "New Appointment"}</h3>
+
         <div>
+          <label>Title</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Title"
+            placeholder="e.g. Checkup"
             style={{ borderColor: errors.title ? "red" : undefined }}
           />
-          {errors.title && (
-            <span style={{ color: "red", fontSize: "0.8rem" }}>
-              {errors.title}
-            </span>
-          )}
+          {errors.title && <span className="error-text">{errors.title}</span>}
         </div>
-        <input
-          value={patient}
-          onChange={(e) => setPatient(e.target.value)}
-          placeholder="Patient"
-        />
-        <input
-          value={room}
-          onChange={(e) => setRoom(e.target.value)}
-          placeholder="Room"
-        />
-        <input
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          placeholder="Type"
-        />
+
         <div>
+          <label>Patient</label>
+          <input
+            value={patient}
+            onChange={(e) => setPatient(e.target.value)}
+            placeholder="Patient name"
+          />
+        </div>
+
+        <div>
+          <label>Room</label>
+          <input
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
+            placeholder="Room number"
+          />
+        </div>
+
+        <div>
+          <label>Type</label>
           <select
-            name="type"
-            id="type"
             value={type}
-            onChange={(e) => setType(e.target.value)}
+            onChange={(e) => setType(e.target.value as Appointment["type"])}
             style={{ borderColor: errors.type ? "red" : undefined }}
           >
             <option value="">Select Type</option>
             <option value="Routine">Routine</option>
             <option value="Urgent">Urgent</option>
           </select>
-          {errors.type && (
-            <span style={{ color: "red", fontSize: "0.8rem" }}>
-              {errors.type}
-            </span>
-          )}
+          {errors.type && <span className="error-text">{errors.type}</span>}
         </div>
-        <div style={{ marginTop: "10px" }}>
+
+        <div style={{ marginTop: "10px", display: "flex", gap: "6px" }}>
           <button onClick={handleSave}>Save</button>
-          <button onClick={onClose} style={{ marginLeft: "5px" }}>
-            Cancel
-          </button>
+          <button onClick={onClose}>Cancel</button>
         </div>
-        <button
-          onClick={() => {
-            if (event.id) {
-              onDelete(event.id as string);
-            }
-          }}
-          style={{ marginTop: "10px", background: "#d32f2f", color: "white" }}
-        >
-          Delete
-        </button>{" "}
+
+        {event.id && (
+          <button
+            onClick={onDelete}
+            style={{ marginTop: "10px", background: "#d32f2f", color: "white" }}
+          >
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );
